@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+help() {
+  me=$(basename "$0")
+  echo "Usage: $me <source_directory> <target_directory>"
+  echo
+  echo "Organize photos."
+  echo
+  echo "Options:"
+  echo "-h     Print this help."
+  echo
+}
+
+exit_abnormal() {
+  help
+  exit 1
+}
+
+while getopts "h" option; do
+  case $option in
+  h)
+    help
+    exit
+    ;;
+  \?)
+    printf "Error: Invalid option\n\n"
+    exit_abnormal
+    ;;
+  esac
+done
+
+# Remove opts params
+shift $(expr $OPTIND - 1)
+
+if [ -z "$1" ]; then
+  printf "Error: No source directory found.\n\n"
+  exit_abnormal
+fi
+
+if [ -z "$2" ]; then
+  printf "Error: No target directory found.\n\n"
+  exit_abnormal
+fi
+
+# Move Live Photos to Live Photos Folder
+mkdir -p "$2"/Live\ Photos
+find "$1" -type f -name "*.heic" |
+  while read -r f; do [ -e "${f%.heic}.mov" ] && mv "${f%.heic}.heic" "$2"/Live\ Photos/ && mv "${f%.heic}.mov" "$2"/Live\ Photos/; done
+find "$1" -type f -name "*.HEIC" |
+  while read -r f; do [ -e "${f%.HEIC}.mov" ] && mv "${f%.HEIC}.HEIC" "$2"/Live\ Photos/ && mv "${f%.HEIC}.mov" "$2"/Live\ Photos/; done
+
+find "$1" -type f -name "*.jpeg" |
+  while read -r f; do [ -e "${f%.jpeg}.mov" ] && mv "${f%.jpeg}.jpeg" "$2"/Live\ Photos/ && mv "${f%.jpeg}.mov" "$2"/Live\ Photos/; done
+
+find "$1" -type f -name "*.jpg" |
+  while read -r f; do [ -e "${f%.jpg}.mov" ] && mv "${f%.jpg}.jpg" "$2"/Live\ Photos/ && mv "${f%.jpg}.mov" "$2"/Live\ Photos/; done
+
+# Sync Modified File Date For Live Photo Files
+find "$2"/Live\ Photos/ -type f -name "*.heic" |
+  while read -r f; do [ -e "${f%.heic}.mov" ] && touch -r "${f%.heic}.heic" "${f%.heic}.mov"; done
+find "$2"/Live\ Photos/ -type f -name "*.HEIC" |
+  while read -r f; do [ -e "${f%.HEIC}.mov" ] && touch -r "${f%.HEIC}.HEIC" "${f%.HEIC}.mov"; done
+
+exiftool '-filename<FileModifyDate' -api largefilesupport=1 -ext heic -ext mov -d "$2"/Live\ Photos/%Y/%Y-%m-%d/%Y%m%d_%H%M%S%%-c.%%le -r "$2"/Live\ Photos/
+exiftool '-filename<FileModifyDate' -api largefilesupport=1 -ext heic -ext jpg -ext -jpeg -d "$2"/Photos/%Y/%Y-%m-%d/%Y%m%d_%H%M%S%%-c.%%le -r "$1"/
+exiftool '-filename<FileModifyDate' -api largefilesupport=1 -ext mov -d "$2"/Videos/%Y/%Y-%m-%d/%Y%m%d_%H%M%S%%-c.%%le -r "$1"/
